@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Open Gusser Score Tracker
 
-## Getting Started
+A professional score tracking dashboard for Geoguessr competitions with real-time updates and admin authentication.
 
-First, run the development server:
+## Features
+
+- 🏆 **Competition Management** - Create and manage Geoguessr competitions
+- 👥 **Player Tracking** - Track multiple players across rounds and games
+- 🔐 **Authentication** - Secure admin login with creator-based permissions
+- ⚡ **Real-time Updates** - Automatic score updates via WebSocket
+- 📊 **Leaderboards** - Live rankings and score history
+- 🎮 **Multi-game Rounds** - Support for rounds with multiple games
+- 🔄 **Rejoin Logic** - Handle player rejoins with correct scoring
+
+## Quick Start
+
+See [SETUP.md](./SETUP.md) for detailed setup instructions.
 
 ```bash
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env and add NEXTAUTH_SECRET (generate with: openssl rand -base64 32)
+
+# Apply database schema
+npx prisma db push
+npx prisma generate
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) and create your first admin account at `/login`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Framework**: Next.js 16 (App Router)
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: NextAuth.js v5 with credentials provider
+- **Real-time**: Socket.io with custom Next.js server
+- **Styling**: Vanilla CSS with modern design system
+- **TypeScript**: Full type safety
 
-## Learn More
+## Authentication
 
-To learn more about Next.js, take a look at the following resources:
+- Only authenticated users can create and manage competitions
+- Competition creators have exclusive edit/delete permissions
+- Non-authenticated users have read-only access to all data
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Real-time Updates
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Scores automatically update across all connected clients when:
+- New scores are submitted
+- Existing scores are edited
+- No manual refresh required
 
-## Deploy on Vercel
+## Docker Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+docker-compose up -d
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The application will be available at `http://localhost:3000`.
+
+## License
+
+MIT

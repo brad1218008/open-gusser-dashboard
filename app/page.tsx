@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { Plus, Trophy, Calendar, Users } from 'lucide-react';
+import { Trophy, Calendar, Users } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import AuthNav from './components/AuthNav';
 
 async function getCompetitions() {
   const competitions = await prisma.competition.findMany({
@@ -26,10 +27,7 @@ export default async function Home() {
           <h1 className="heading-1">Open Gusser</h1>
           <p style={{ color: '#94a3b8' }}>Professional Score Tracker</p>
         </div>
-        <Link href="/competitions/new" className="btn btn-primary">
-          <Plus size={20} />
-          New Competition
-        </Link>
+        <AuthNav />
       </header>
 
       <section>
@@ -39,10 +37,7 @@ export default async function Home() {
           <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
             <Trophy size={48} style={{ color: '#334155', marginBottom: '1rem' }} />
             <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>No competitions yet</h3>
-            <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>Start your first game to track scores.</p>
-            <Link href="/competitions/new" className="btn btn-primary">
-              Create Competition
-            </Link>
+            <p style={{ color: '#94a3b8' }}>Start your first game to track scores.</p>
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>

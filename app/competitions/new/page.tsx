@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { ArrowLeft, Plus, X, Save } from 'lucide-react';
 
 export default function NewCompetitionPage() {
     const router = useRouter();
+    const { data: session } = useSession();
     const [name, setName] = useState('');
     const [players, setPlayers] = useState<string[]>(['']);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,17 +54,21 @@ export default function NewCompetitionPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name,
-                    playerNames: validPlayers
+                    playerNames: validPlayers,
+                    userId: session?.user?.id
                 })
             });
 
-            if (!res.ok) throw new Error('Failed to create competition');
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Failed to create competition');
+            }
 
             const data = await res.json();
             router.push(`/competitions/${data.id}`);
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert('Error creating competition');
+            alert(error.message || 'Error creating competition');
             setIsSubmitting(false);
         }
     };

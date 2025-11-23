@@ -7,6 +7,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id           String        @id @default(uuid()) @map("user_id")
+  username     String        @unique
+  passwordHash String        @map("password_hash")
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  competitions Competition[]
+
+  @@map("Users")
+}
+
 model Player {
   id        String   @id @default(uuid()) @map("player_id")
   name      String   @unique
@@ -22,7 +33,9 @@ model Competition {
   name      String
   status    CompetitionStatus @default(ACTIVE)
   createdAt DateTime          @default(now()) @map("created_at")
+  creatorId String?           @map("creator_id")
 
+  creator User?               @relation(fields: [creatorId], references: [id])
   players CompetitionPlayer[]
   rounds  Round[]
 

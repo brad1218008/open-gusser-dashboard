@@ -17,17 +17,24 @@ export async function GET() {
 // POST /api/competitions - Create a new competition
 export async function POST(request: Request) {
     const body = await request.json();
-    const { name, playerNames } = body; // playerNames is an array of strings
+    const { name, playerNames, userId } = body; // userId from authenticated session
 
     if (!name || !playerNames || !Array.isArray(playerNames)) {
         return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
     }
 
+    if (!userId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Transaction to create players (if not exist) and competition
     const result = await prisma.$transaction(async (tx: any) => {
-        // 1. Create competition
+        // 1. Create competition with creator
         const competition = await tx.competition.create({
-            data: { name }
+            data: {
+                name,
+                creatorId: userId
+            }
         });
 
         // 2. Handle players
@@ -52,3 +59,4 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result);
 }
+

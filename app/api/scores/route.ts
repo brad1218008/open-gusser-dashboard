@@ -107,5 +107,22 @@ export async function POST(request: Request) {
         }
     }
 
+    // Broadcast score update via WebSocket
+    if (global.io) {
+        // Get the competition ID from the round
+        const round = await prisma.round.findUnique({
+            where: { id: roundId },
+            select: { competitionId: true }
+        });
+
+        if (round) {
+            global.io.to(`competition-${round.competitionId}`).emit('score-update', {
+                competitionId: round.competitionId,
+                roundId: roundId,
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
+
     return NextResponse.json(results);
 }

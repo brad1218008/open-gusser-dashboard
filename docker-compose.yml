@@ -9,9 +9,11 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/opengusser
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/opengusser
+      - NODE_ENV=production
     depends_on:
       - db
+    command: node server.js
     volumes:
       - ./:/app
       - /app/node_modules

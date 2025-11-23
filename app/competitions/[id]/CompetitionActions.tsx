@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Trash2, CheckCircle } from 'lucide-react';
 
 interface CompetitionActionsProps {
@@ -11,6 +12,7 @@ interface CompetitionActionsProps {
 
 export default function CompetitionActions({ id, status }: CompetitionActionsProps) {
     const router = useRouter();
+    const { data: session } = useSession();
     const [isEnding, setIsEnding] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
@@ -22,7 +24,10 @@ export default function CompetitionActions({ id, status }: CompetitionActionsPro
             const res = await fetch(`/api/competitions/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'COMPLETED' })
+                body: JSON.stringify({
+                    status: 'COMPLETED',
+                    userId: session?.user?.id
+                })
             });
 
             if (!res.ok) throw new Error('Failed to end competition');
@@ -42,7 +47,9 @@ export default function CompetitionActions({ id, status }: CompetitionActionsPro
         setIsDeleting(true);
         try {
             const res = await fetch(`/api/competitions/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: session?.user?.id })
             });
 
             if (!res.ok) throw new Error('Failed to delete competition');

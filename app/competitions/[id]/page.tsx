@@ -2,12 +2,19 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Plus, Map, ArrowLeft, Trophy } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import { auth } from '@/lib/auth';
 import CompetitionActions from './CompetitionActions';
+import CompetitionRealtime from './CompetitionRealtime';
 
 async function getCompetition(id: string) {
     const competition = await prisma.competition.findUnique({
         where: { id },
-        include: {
+        select: {
+            id: true,
+            name: true,
+            status: true,
+            createdAt: true,
+            creatorId: true,
             players: {
                 include: { player: true }
             },
@@ -29,10 +36,14 @@ export const dynamic = 'force-dynamic';
 export default async function CompetitionPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     const competition = await getCompetition(id);
+    const session = await auth();
 
     if (!competition) {
         notFound();
     }
+
+    // Check if current user is the creator
+    const isCreator = session?.user?.id === competition.creatorId;
 
     // Calculate Totals
     const playerTotals: Record<string, number> = {};
@@ -67,10 +78,10 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
                             <span className={competition.status === 'ACTIVE' ? 'badge badge-active' : 'badge badge-completed'}>
                                 {competition.status}
                             </span>
-                            <CompetitionActions id={competition.id} status={competition.status} />
+                            {isCreator && <CompetitionActions id={competition.id} status={competition.status} />}
                         </div>
                     </div>
-                    {competition.status === 'ACTIVE' && (
+                    {isCreator && competition.status === 'ACTIVE' && (
                         <Link href={`/competitions/${competition.id}/rounds/new`} className="btn btn-primary">
                             <Plus size={20} />
                             Add Round
@@ -125,108 +136,123 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
                         </div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {competition.rounds.map((round) => {
-                                // Determine max game index with scores
-                                let maxGameIndex = 0;
-                                round.scores.forEach((s: any) => {
-                                    if (s.gameIndex > maxGameIndex) maxGameIndex = s.gameIndex;
-                                });
+                            {/* Sort rounds: reverse order (newest first) when ACTIVE, normal order when ENDED */}
+                            {[...competition.rounds]
+                                .sort((a, b) => competition.status === 'ACTIVE'
+                                    ? b.roundNumber - a.roundNumber
+                                    : a.roundNumber - b.roundNumber
+                                )
+                                .map((round) => {
+                                    // Determine max game index with scores
+                                    let maxGameIndex = 0;
+                                    round.scores.forEach((s: any) => {
+                                        if (s.gameIndex > maxGameIndex) maxGameIndex = s.gameIndex;
+                                    });
 
-                                return (
-                                    <div key={round.id} className="card" style={{ padding: '1rem 1.5rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                            <div>
-                                                <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Round {round.roundNumber}: {round.mapName}</h3>
-                                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
-                                                    <span className="badge" style={{ backgroundColor: '#334155', color: '#fff' }}>
-                                                        {round.mapType}
-                                                    </span>
-                                                    <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
-                                                        {round.gameCount} Games
-                                                    </span>
+                                    return (
+                                        <div key={round.id} className="card" style={{ padding: '1rem 1.5rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                                <div>
+                                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Round {round.roundNumber}: {round.mapName}</h3>
+                                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
+                                                        <span className="badge" style={{ backgroundColor: '#334155', color: '#fff' }}>
+                                                            {round.mapType}
+                                                        </span>
+                                                        <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                                                            {round.gameCount} Games
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
+
+                                            {/* Game Buttons */}
+                                            {isCreator && competition.status === 'ACTIVE' && (
+                                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+                                                    {/* Show Edit for the last entered game (if any) */}
+                                                    {maxGameIndex > 0 && (
+                                                        <Link
+                                                            href={`/competitions/${competition.id}/rounds/${round.id}/score?game=${maxGameIndex}`}
+                                                            className="btn btn-outline"
+                                                            style={{ fontSize: '0.85rem', padding: '0.25rem 0.75rem' }}
+                                                        >
+                                                            Edit Game {maxGameIndex}
+                                                        </Link>
+                                                    )}
+
+                                                    {/* Show Enter for the next game (if within limit) */}
+                                                    {maxGameIndex < round.gameCount && (
+                                                        <Link
+                                                            href={`/competitions/${competition.id}/rounds/${round.id}/score?game=${maxGameIndex + 1}`}
+                                                            className="btn btn-primary"
+                                                            style={{ fontSize: '0.85rem', padding: '0.25rem 0.75rem' }}
+                                                        >
+                                                            Enter Game {maxGameIndex + 1}
+                                                        </Link>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Score Matrix */}
+                                            {round.scores.length > 0 && (
+                                                <div className="table-container" style={{ fontSize: '0.9rem' }}>
+                                                    <table>
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Player</th>
+                                                                {Array.from({ length: round.gameCount }).map((_, i) => (
+                                                                    <th key={i} style={{ textAlign: 'center' }}>G{i + 1}</th>
+                                                                ))}
+                                                                <th style={{ textAlign: 'right' }}>Total</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {competition.players.map((cp: any) => {
+                                                                const playerScores = round.scores.filter((s: any) => s.competitionPlayerId === cp.id);
+                                                                const totalScore = playerScores.reduce((sum: number, s: any) => sum + (s.calculatedGameScore || 0), 0);
+
+                                                                return (
+                                                                    <tr key={cp.id}>
+                                                                        <td style={{ fontWeight: 500 }}>{cp.player.name}</td>
+                                                                        {Array.from({ length: round.gameCount }).map((_, i) => {
+                                                                            const gameIndex = i + 1;
+                                                                            const score = playerScores.find((s: any) => s.gameIndex === gameIndex);
+                                                                            const isPerfectScore = score?.calculatedGameScore === 5000;
+                                                                            const isNearPerfect = score?.calculatedGameScore && score.calculatedGameScore >= 4900 && score.calculatedGameScore < 5000;
+
+                                                                            return (
+                                                                                <td key={gameIndex} style={{ textAlign: 'center' }}>
+                                                                                    {score ? (
+                                                                                        <span style={{
+                                                                                            color: isPerfectScore ? '#fbbf24' : (isNearPerfect ? '#c0c0c0' : (score.isRejoin ? 'var(--warning)' : 'inherit')),
+                                                                                            fontWeight: (isPerfectScore || isNearPerfect) ? 700 : 'inherit'
+                                                                                        }}>
+                                                                                            {score.calculatedGameScore?.toLocaleString() ?? '-'}
+                                                                                            {score.isRejoin && '*'}
+                                                                                        </span>
+                                                                                    ) : '-'}
+                                                                                </td>
+                                                                            );
+                                                                        })}
+                                                                        <td style={{ textAlign: 'right', fontWeight: 700 }}>
+                                                                            {totalScore.toLocaleString()}
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
                                         </div>
-
-                                        {/* Game Buttons */}
-                                        {competition.status === 'ACTIVE' && (
-                                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-                                                {/* Show Edit for the last entered game (if any) */}
-                                                {maxGameIndex > 0 && (
-                                                    <Link
-                                                        href={`/competitions/${competition.id}/rounds/${round.id}/score?game=${maxGameIndex}`}
-                                                        className="btn btn-outline"
-                                                        style={{ fontSize: '0.85rem', padding: '0.25rem 0.75rem' }}
-                                                    >
-                                                        Edit Game {maxGameIndex}
-                                                    </Link>
-                                                )}
-
-                                                {/* Show Enter for the next game (if within limit) */}
-                                                {maxGameIndex < round.gameCount && (
-                                                    <Link
-                                                        href={`/competitions/${competition.id}/rounds/${round.id}/score?game=${maxGameIndex + 1}`}
-                                                        className="btn btn-primary"
-                                                        style={{ fontSize: '0.85rem', padding: '0.25rem 0.75rem' }}
-                                                    >
-                                                        Enter Game {maxGameIndex + 1}
-                                                    </Link>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* Score Matrix */}
-                                        {round.scores.length > 0 && (
-                                            <div className="table-container" style={{ fontSize: '0.9rem' }}>
-                                                <table>
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Player</th>
-                                                            {Array.from({ length: round.gameCount }).map((_, i) => (
-                                                                <th key={i} style={{ textAlign: 'center' }}>G{i + 1}</th>
-                                                            ))}
-                                                            <th style={{ textAlign: 'right' }}>Total</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {competition.players.map((cp: any) => {
-                                                            const playerScores = round.scores.filter((s: any) => s.competitionPlayerId === cp.id);
-                                                            const totalScore = playerScores.reduce((sum: number, s: any) => sum + (s.calculatedGameScore || 0), 0);
-
-                                                            return (
-                                                                <tr key={cp.id}>
-                                                                    <td style={{ fontWeight: 500 }}>{cp.player.name}</td>
-                                                                    {Array.from({ length: round.gameCount }).map((_, i) => {
-                                                                        const gameIndex = i + 1;
-                                                                        const score = playerScores.find((s: any) => s.gameIndex === gameIndex);
-                                                                        return (
-                                                                            <td key={gameIndex} style={{ textAlign: 'center' }}>
-                                                                                {score ? (
-                                                                                    <span style={{ color: score.isRejoin ? 'var(--warning)' : 'inherit' }}>
-                                                                                        {score.calculatedGameScore?.toLocaleString() ?? '-'}
-                                                                                        {score.isRejoin && '*'}
-                                                                                    </span>
-                                                                                ) : '-'}
-                                                                            </td>
-                                                                        );
-                                                                    })}
-                                                                    <td style={{ textAlign: 'right', fontWeight: 700 }}>
-                                                                        {totalScore.toLocaleString()}
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
                         </div>
                     )}
                 </section>
             </div>
+
+            {/* Real-time updates */}
+            <CompetitionRealtime competitionId={competition.id} />
         </div>
     );
 }
