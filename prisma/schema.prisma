@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Player {
+  id        String   @id @default(uuid()) @map("player_id")
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  participations CompetitionPlayer[]
+
+  @@map("Players")
+}
+
+model Competition {
+  id        String            @id @default(uuid()) @map("competition_id")
+  name      String
+  status    CompetitionStatus @default(ACTIVE)
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  players CompetitionPlayer[]
+  rounds  Round[]
+
+  @@map("Competitions")
+}
+
+enum CompetitionStatus {
+  ACTIVE
+  COMPLETED
+}
+
+model CompetitionPlayer {
+  id            String @id @default(uuid()) @map("comp_player_id")
+  competitionId String @map("competition_id")
+  playerId      String @map("player_id")
+
+  competition Competition @relation(fields: [competitionId], references: [id])
+  player      Player      @relation(fields: [playerId], references: [id])
+  scores      Score[]
+
+  @@unique([competitionId, playerId])
+  @@map("CompetitionPlayers")
+}
+
+model Round {
+  id            String   @id @default(uuid()) @map("round_id")
+  competitionId String   @map("competition_id")
+  roundNumber   Int      @map("round_number")
+  gameCount     Int      @default(1) @map("game_count")
+  mapName       String   @map("map_name")
+  mapType       MapType  @map("map_type")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  competition Competition @relation(fields: [competitionId], references: [id])
+  scores      Score[]
+
+  @@map("Rounds")
+}
+
+enum MapType {
+  Moving
+  NoMove
+  NMPZ
+  Standard // Keeping for safety, though likely unused based on new requirements
+}
+
+model Score {
+  id                  String   @id @default(uuid()) @map("score_id")
+  roundId             String   @map("round_id")
+  competitionPlayerId String   @map("comp_player_id")
+  inputTotalScore     Int      @map("input_total_score")
+  gameIndex           Int      @default(1) @map("game_index")
+  calculatedGameScore Int?     @map("calculated_game_score")
+  isRejoin            Boolean  @default(false) @map("is_rejoin")
+  entryTimestamp      DateTime @default(now()) @map("entry_timestamp")
+
+  round             Round             @relation(fields: [roundId], references: [id])
+  competitionPlayer CompetitionPlayer @relation(fields: [competitionPlayerId], references: [id])
+
+  @@map("Scores")
+}
