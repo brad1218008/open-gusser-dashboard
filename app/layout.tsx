@@ -6,7 +6,7 @@ import Providers from './components/Providers'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Open Gusser Score Tracker',
+  title: 'Open Guessr Score Tracker',
   description: 'Track your Geoguessr scores with style',
 }
 

@@ -24,7 +24,7 @@ export default async function Home() {
     <div className="container">
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
         <div>
-          <h1 className="heading-1">Open Gusser</h1>
+          <h1 className="heading-1">Open Guessr</h1>
           <p style={{ color: '#94a3b8' }}>Professional Score Tracker</p>
         </div>
         <AuthNav />

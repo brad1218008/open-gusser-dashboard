@@ -18,7 +18,7 @@ export function getSocket(): Socket {
     return socket;
 }
 
-export function useSocket(competitionId?: string) {
+export function useSocket(competitionId?: string, onReconnect?: () => void) {
     const [isConnected, setIsConnected] = useState(false);
     const [socketInstance, setSocketInstance] = useState<Socket | null>(null);
 
@@ -29,6 +29,18 @@ export function useSocket(competitionId?: string) {
         function onConnect() {
             setIsConnected(true);
             console.log('Socket connected');
+
+            // Rejoin competition room on reconnect
+            if (competitionId) {
+                s.emit('join-competition', competitionId);
+                console.log('Rejoined competition room:', competitionId);
+            }
+
+            // Trigger reconnect callback to refresh data
+            if (onReconnect) {
+                console.log('Triggering data refresh after reconnection');
+                onReconnect();
+            }
         }
 
         function onDisconnect() {
@@ -39,8 +51,8 @@ export function useSocket(competitionId?: string) {
         s.on('connect', onConnect);
         s.on('disconnect', onDisconnect);
 
-        // Join competition room if competitionId is provided
-        if (competitionId) {
+        // Join competition room if competitionId is provided and already connected
+        if (competitionId && s.connected) {
             s.emit('join-competition', competitionId);
         }
 
@@ -53,7 +65,7 @@ export function useSocket(competitionId?: string) {
                 s.emit('leave-competition', competitionId);
             }
         };
-    }, [competitionId]);
+    }, [competitionId, onReconnect]);
 
     return { socket: socketInstance, isConnected };
 }

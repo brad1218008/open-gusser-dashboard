@@ -1,4 +1,4 @@
-# Open Gusser Score Tracker
+# Open Guessr Score Tracker
 
 A professional score tracking dashboard for Geoguessr competitions with real-time updates and admin authentication.
 

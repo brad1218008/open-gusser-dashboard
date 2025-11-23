@@ -10,7 +10,10 @@ interface CompetitionRealtimeProps {
 
 export default function CompetitionRealtime({ competitionId }: CompetitionRealtimeProps) {
     const router = useRouter();
-    const { socket, isConnected } = useSocket(competitionId);
+    const { socket, isConnected } = useSocket(competitionId, () => {
+        // Refresh data when reconnected
+        router.refresh();
+    });
 
     useEffect(() => {
         if (!socket) return;

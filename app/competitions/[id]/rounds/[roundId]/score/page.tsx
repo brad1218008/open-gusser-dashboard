@@ -80,6 +80,7 @@ export default async function ScorePage({
             roundId={roundId}
             roundNumber={data.round.roundNumber}
             mapName={data.round.mapName}
+            gameCount={data.round.gameCount}
             players={data.playersData}
         />
     );
