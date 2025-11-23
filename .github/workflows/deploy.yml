@@ -1,0 +1,48 @@
+name: Deploy to Test Server
+
+on: workflow_dispatch
+
+env:
+  DOCKER_IMAGE: open-gusser-dashboard
+  VERSION: '1.0'
+  HOST_NAME: 'https://og-dashboard.britad.com'
+
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout latest code
+        uses: actions/checkout@v3
+
+      - name: Define build version
+        id: default-version
+        run: echo "TAG_VERSION=${GITHUB_RUN_ID}" >> $GITHUB_ENV
+
+      - name: Build docker image
+        id: build-docker
+        run: docker build --load -t "${{env.DOCKER_IMAGE}}:${{env.VERSION}}.${{env.TAG_VERSION}}" --build-arg DATABASE_URL="${{secrets.DATABASE_URL}}" .
+
+      - name: Stop old container if exists
+        run: |
+          docker stop "${{env.DOCKER_IMAGE}}" || true
+          docker rm "${{env.DOCKER_IMAGE}}" || true
+
+      - name: Run database migrations
+        run: |
+          docker run --rm \
+            --network main_network \
+            -e DATABASE_URL="${{secrets.DATABASE_URL}}" \
+            "${{env.DOCKER_IMAGE}}:${{env.VERSION}}.${{env.TAG_VERSION}}" \
+            npx prisma migrate deploy
+
+      - name: Deploy new container
+        run: |
+          docker run -d \
+            --name "${{env.DOCKER_IMAGE}}" \
+            --network main_network \
+            --restart=always \
+            -p 3500:3000 \
+            -e DATABASE_URL="${{secrets.DATABASE_URL}}" \
+            -e NEXTAUTH_SECRET="${{secrets.NEXTAUTH_SECRET}}" \
+            -e NEXTAUTH_URL="${{env.HOST_NAME}}" \
+            "${{env.DOCKER_IMAGE}}:${{env.VERSION}}.${{env.TAG_VERSION}}"
