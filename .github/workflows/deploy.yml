@@ -27,14 +27,6 @@ jobs:
           docker stop "${{env.DOCKER_IMAGE}}" || true
           docker rm "${{env.DOCKER_IMAGE}}" || true
 
-      - name: Run database migrations
-        run: |
-          docker run --rm \
-            --network main_network \
-            -e DATABASE_URL="${{secrets.DATABASE_URL}}" \
-            "${{env.DOCKER_IMAGE}}:${{env.VERSION}}.${{env.TAG_VERSION}}" \
-            npx prisma migrate deploy
-
       - name: Deploy new container
         run: |
           docker run -d \
