@@ -30,6 +30,11 @@ export function useSocket(competitionId?: string, onReconnect?: () => void) {
             setIsConnected(true);
             console.log('Socket connected');
 
+            // Dispatch custom event for ConnectionStatus component
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('socket:connect'));
+            }
+
             // Rejoin competition room on reconnect
             if (competitionId) {
                 s.emit('join-competition', competitionId);
@@ -46,6 +51,11 @@ export function useSocket(competitionId?: string, onReconnect?: () => void) {
         function onDisconnect() {
             setIsConnected(false);
             console.log('Socket disconnected');
+
+            // Dispatch custom event for ConnectionStatus component
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('socket:disconnect'));
+            }
         }
 
         s.on('connect', onConnect);

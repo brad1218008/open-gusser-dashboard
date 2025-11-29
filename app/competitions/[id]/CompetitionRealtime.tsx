@@ -20,6 +20,12 @@ export default function CompetitionRealtime({ competitionId }: CompetitionRealti
 
         function onScoreUpdate(data: any) {
             console.log('Score update received:', data);
+
+            // Dispatch custom event for ConnectionStatus component
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('data:update'));
+            }
+
             // Refresh the page data
             router.refresh();
         }
@@ -31,25 +37,7 @@ export default function CompetitionRealtime({ competitionId }: CompetitionRealti
         };
     }, [socket, router]);
 
-    // Optional: Show connection status indicator
-    if (process.env.NODE_ENV === 'development') {
-        return (
-            <div style={{
-                position: 'fixed',
-                bottom: '1rem',
-                right: '1rem',
-                padding: '0.5rem 1rem',
-                borderRadius: '0.5rem',
-                backgroundColor: isConnected ? '#10b981' : '#ef4444',
-                color: 'white',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                zIndex: 1000
-            }}>
-                {isConnected ? '🟢 Live' : '🔴 Disconnected'}
-            </div>
-        );
-    }
 
+    // Connection status is now handled by the global ConnectionStatus component
     return null;
 }

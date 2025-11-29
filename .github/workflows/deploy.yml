@@ -37,4 +37,5 @@ jobs:
             -e DATABASE_URL="${{secrets.DATABASE_URL}}" \
             -e NEXTAUTH_SECRET="${{secrets.NEXTAUTH_SECRET}}" \
             -e NEXTAUTH_URL="${{env.HOST_NAME}}" \
+            -e AUTH_TRUST_HOST=true \
             "${{env.DOCKER_IMAGE}}:${{env.VERSION}}.${{env.TAG_VERSION}}"
