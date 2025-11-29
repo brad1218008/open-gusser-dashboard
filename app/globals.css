@@ -2,14 +2,16 @@
   /* Color Palette - Premium Dark Theme */
   --background: #0f172a;
   --foreground: #f8fafc;
-  
-  --primary: #6366f1; /* Indigo 500 */
-  --primary-hover: #4f46e5; /* Indigo 600 */
+
+  --primary: #6366f1;
+  /* Indigo 500 */
+  --primary-hover: #4f46e5;
+  /* Indigo 600 */
   --primary-foreground: #ffffff;
 
   --card: #1e293b;
   --card-foreground: #f1f5f9;
-  
+
   --border: #334155;
   --input: #1e293b;
   --ring: #6366f1;
@@ -43,7 +45,7 @@ a {
 
 /* Utility Classes */
 .container {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 2rem;
 }

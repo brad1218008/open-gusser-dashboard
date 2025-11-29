@@ -12,6 +12,10 @@ RUN npm install
 COPY . .
 
 RUN npx prisma generate
+
+# Set production environment
+ENV NODE_ENV=production
+
 RUN npm run build
 
 # Copy entrypoint script
