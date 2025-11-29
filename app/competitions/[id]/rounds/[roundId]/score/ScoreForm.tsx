@@ -50,6 +50,7 @@ export default function ScoreForm({ competitionId, roundId, roundNumber, mapName
     const [jsonMessage, setJsonMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [showBookmarkletTip, setShowBookmarkletTip] = useState(false);
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
     // Reset states when gameIndex changes (navigating between games)
     useEffect(() => {
@@ -114,26 +115,79 @@ export default function ScoreForm({ competitionId, roundId, roundNumber, mapName
         }
     };
 
-    const toggleRejoin = (id: string) => {
-        setRejoins(prev => ({ ...prev, [id]: !prev[id] }));
+    const handleJsonPasteAndSave = async () => {
+        setJsonMessage(null);
+        try {
+            const data = JSON.parse(jsonInput);
+
+            if (!Array.isArray(data)) {
+                setJsonMessage({ type: 'error', text: 'JSON must be an array' });
+                return;
+            }
+
+            let matchedCount = 0;
+            const newInputs = { ...inputs };
+
+            data.forEach((item: any) => {
+                if (!item.name || item.point === undefined) {
+                    return;
+                }
+
+                // Find matching player (case-insensitive)
+                const matchedPlayer = players.find(p =>
+                    p.name.toLowerCase() === item.name.toLowerCase()
+                );
+
+                if (matchedPlayer) {
+                    const score = parseInt(item.point, 10);
+                    if (!isNaN(score)) {
+                        newInputs[matchedPlayer.competitionPlayerId] = score;
+                        matchedCount++;
+                    }
+                }
+            });
+
+            if (matchedCount === 0) {
+                setJsonMessage({
+                    type: 'error',
+                    text: 'No matching players found'
+                });
+                return;
+            }
+
+            setInputs(newInputs);
+            setJsonInput('');
+
+            // Check if all scores are unchanged before saving
+            const allUnchanged = checkAllScoresUnchanged(newInputs);
+            if (allUnchanged) {
+                setShowConfirmDialog(true);
+            } else {
+                await submitScores(newInputs);
+            }
+        } catch (error) {
+            setJsonMessage({
+                type: 'error',
+                text: 'Invalid JSON format. Please check your input.'
+            });
+        }
     };
 
-    const toggleAllRejoins = () => {
-        const allSelected = players.every(p => rejoins[p.competitionPlayerId]);
-        const newState: Record<string, boolean> = {};
-        players.forEach(p => {
-            newState[p.competitionPlayerId] = !allSelected;
+    const checkAllScoresUnchanged = (currentInputs: Record<string, number | ''> = inputs): boolean => {
+        // Check if all players have the same score as their previous total
+        return players.every(p => {
+            const inputScore = Number(currentInputs[p.competitionPlayerId] || 0);
+            const previousTotal = p.currentTotal ?? 0;
+            return inputScore === previousTotal;
         });
-        setRejoins(newState);
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const submitScores = async (currentInputs: Record<string, number | ''> = inputs) => {
         setIsSubmitting(true);
 
         const scoresToSubmit = players.map(p => ({
             playerId: p.rawPlayerId,
-            inputTotalScore: Number(inputs[p.competitionPlayerId] || 0),
+            inputTotalScore: Number(currentInputs[p.competitionPlayerId] || 0),
             isRejoin: rejoins[p.competitionPlayerId] || false,
             gameIndex: gameIndex
         }));
@@ -170,6 +224,40 @@ export default function ScoreForm({ competitionId, roundId, roundNumber, mapName
             alert('Error submitting scores');
             setIsSubmitting(false);
         }
+    };
+
+    const toggleRejoin = (id: string) => {
+        setRejoins(prev => ({ ...prev, [id]: !prev[id] }));
+    };
+
+    const toggleAllRejoins = () => {
+        const allSelected = players.every(p => rejoins[p.competitionPlayerId]);
+        const newState: Record<string, boolean> = {};
+        players.forEach(p => {
+            newState[p.competitionPlayerId] = !allSelected;
+        });
+        setRejoins(newState);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        // Check if all scores are unchanged
+        const allUnchanged = checkAllScoresUnchanged();
+        if (allUnchanged) {
+            setShowConfirmDialog(true);
+        } else {
+            await submitScores();
+        }
+    };
+
+    const handleConfirmZeroScores = async () => {
+        setShowConfirmDialog(false);
+        await submitScores();
+    };
+
+    const handleCancelConfirm = () => {
+        setShowConfirmDialog(false);
     };
 
     const allRejoinsSelected = players.length > 0 && players.every(p => rejoins[p.competitionPlayerId]);
@@ -328,6 +416,17 @@ export default function ScoreForm({ competitionId, roundId, roundNumber, mapName
                             Import Scores
                         </button>
 
+                        <button
+                            type="button"
+                            onClick={handleJsonPasteAndSave}
+                            className="btn btn-primary"
+                            disabled={!jsonInput.trim() || isSubmitting}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        >
+                            <Save size={18} />
+                            Import & Save
+                        </button>
+
                         {jsonMessage && (
                             <span style={{
                                 color: jsonMessage.type === 'success' ? '#4ade80' : '#f87171',
@@ -404,6 +503,58 @@ export default function ScoreForm({ competitionId, roundId, roundNumber, mapName
                     </button>
                 </div>
             </form>
+
+            {/* Confirmation Dialog */}
+            {showConfirmDialog && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 50
+                }}>
+                    <div style={{
+                        backgroundColor: '#1e293b',
+                        padding: '2rem',
+                        borderRadius: '12px',
+                        maxWidth: '500px',
+                        width: '90%',
+                        border: '1px solid #334155',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                    }}>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem', color: '#f8fafc' }}>
+                            Confirm Zero Scores
+                        </h3>
+                        <p style={{ color: '#cbd5e1', marginBottom: '1.5rem', lineHeight: '1.6' }}>
+                            It seems that no scores have changed from the previous round (all players have 0 points added).
+                            <br /><br />
+                            Are you sure you want to save these scores?
+                        </p>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                            <button
+                                type="button"
+                                onClick={handleCancelConfirm}
+                                className="btn btn-outline"
+                                style={{ backgroundColor: 'transparent' }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleConfirmZeroScores}
+                                className="btn btn-primary"
+                            >
+                                Yes, Save 0 Scores
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

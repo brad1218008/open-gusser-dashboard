@@ -44,7 +44,7 @@ export default function ConnectionStatus() {
     }, []);
 
     const formatTime = (date: Date) => {
-        return date.toLocaleTimeString('zh-TW', {
+        return date.toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit'
@@ -93,14 +93,14 @@ export default function ConnectionStatus() {
                     fontWeight: 600,
                     fontSize: '0.7rem'
                 }}>
-                    {isConnected ? '已連線' : '已斷線'}
+                    {isConnected ? 'Connected' : 'Disconnected'}
                 </span>
                 {isConnected && (
                     <span style={{
                         color: '#94a3b8',
                         fontSize: '0.65rem'
                     }}>
-                        更新: {formatTime(lastUpdate)}
+                        Updated: {formatTime(lastUpdate)}
                     </span>
                 )}
             </div>
