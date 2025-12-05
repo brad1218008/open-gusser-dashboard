@@ -96,6 +96,17 @@ export async function PATCH(
             data: { status }
         });
 
+        // Broadcast update if status changed to ENDED
+        // Note: We need to cast global to any to access io, as it's added in server.js
+        const io = (global as any).io;
+        if (io) {
+            io.to(`competition-${id}`).emit('competition-update', {
+                type: 'STATUS_CHANGE',
+                status,
+                competitionId: id
+            });
+        }
+
         return NextResponse.json(updatedCompetition);
     } catch (error) {
         console.error('Error updating competition:', error);

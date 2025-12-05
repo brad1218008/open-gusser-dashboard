@@ -37,6 +37,20 @@ export default function CompetitionRealtime({ competitionId }: CompetitionRealti
         };
     }, [socket, router]);
 
+    useEffect(() => {
+        if (!socket) return;
+
+        function onCompetitionUpdate(data: any) {
+            console.log('Competition update received:', data);
+            router.refresh();
+        }
+
+        socket.on('competition-update', onCompetitionUpdate);
+
+        return () => {
+            socket.off('competition-update', onCompetitionUpdate);
+        };
+    }, [socket, router]);
 
     // Connection status is now handled by the global ConnectionStatus component
     return null;
