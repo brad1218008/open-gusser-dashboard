@@ -5,7 +5,7 @@ import { MapType } from '@prisma/client';
 // POST /api/rounds - Create a new round
 export async function POST(request: Request) {
     const body = await request.json();
-    const { competitionId, mapName, roundNumber, mapType, gameCount } = body;
+    const { competitionId, mapName, roundNumber, mapType, gameCount, joinCode } = body;
 
     if (!competitionId || !roundNumber || !mapName || !mapType) {
         return NextResponse.json({ array: 'Missing fields' }, { status: 400 });
@@ -18,7 +18,8 @@ export async function POST(request: Request) {
                 mapName,
                 roundNumber: Number(roundNumber),
                 gameCount: Number(gameCount || 1),
-                mapType: mapType as MapType
+                mapType: mapType as MapType,
+                joinCode
             }
         });
 

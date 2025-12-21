@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Plus, Map, ArrowLeft, Trophy } from 'lucide-react';
+import { Plus, Map, ArrowLeft, Trophy, Pencil } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import CompetitionActions from './CompetitionActions';
 import CompetitionRealtime from './CompetitionRealtime';
+import { QRCodeSVG } from 'qrcode.react';
 
 async function getCompetition(id: string) {
     const competition = await prisma.competition.findUnique({
@@ -151,9 +152,20 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
 
                                     return (
                                         <div key={round.id} className="card" style={{ padding: '1rem 1.5rem' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                                                 <div>
-                                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Round {round.roundNumber}: {round.mapName}</h3>
+                                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                        Round {round.roundNumber}: {round.mapName}
+                                                        {isCreator && competition.status === 'ACTIVE' && (
+                                                            <Link
+                                                                href={`/competitions/${competition.id}/rounds/${round.id}/edit`}
+                                                                style={{ color: '#94a3b8', display: 'inline-flex', padding: '4px' }}
+                                                                title="Edit Round"
+                                                            >
+                                                                <Pencil size={14} />
+                                                            </Link>
+                                                        )}
+                                                    </h3>
                                                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
                                                         <span className="badge" style={{ backgroundColor: '#334155', color: '#fff' }}>
                                                             {round.mapType}
@@ -163,6 +175,57 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
                                                         </span>
                                                     </div>
                                                 </div>
+                                                {/* Updated QR Code and Join Code Layout */}
+                                                {competition.status === 'ACTIVE' && round.joinCode && (
+                                                    <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                                                        <a
+                                                            href={`https://openguessr.com/?join=${round.joinCode}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            title="Click to Join"
+                                                            style={{
+                                                                display: 'block',
+                                                                textAlign: 'right',
+                                                                textDecoration: 'none',
+                                                                color: 'inherit'
+                                                            }}
+                                                        >
+                                                            <div style={{
+                                                                fontSize: '0.75rem',
+                                                                textTransform: 'uppercase',
+                                                                color: '#94a3b8',
+                                                                marginBottom: '0.25rem',
+                                                                fontWeight: 600,
+                                                                letterSpacing: '0.05em'
+                                                            }}>
+                                                                Join Code
+                                                            </div>
+                                                            <div style={{
+                                                                fontSize: '2rem',
+                                                                fontWeight: 800,
+                                                                color: 'var(--foreground)',
+                                                                lineHeight: 1,
+                                                                letterSpacing: '-0.025em'
+                                                            }}>
+                                                                {round.joinCode}
+                                                            </div>
+                                                        </a>
+                                                        <div style={{
+                                                            background: 'white',
+                                                            padding: '6px',
+                                                            borderRadius: '0.5rem',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                                        }}>
+                                                            <QRCodeSVG
+                                                                value={`https://openguessr.com/?join=${round.joinCode}`}
+                                                                size={60}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {/* Game Buttons */}

@@ -76,6 +76,7 @@ export default async function ScorePage({
 
     return (
         <ScoreForm
+            key={`${roundId}-${gameIndex}`}
             competitionId={id}
             roundId={roundId}
             roundNumber={data.round.roundNumber}

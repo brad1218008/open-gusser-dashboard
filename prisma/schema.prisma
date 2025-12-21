@@ -67,6 +67,7 @@ model Round {
   gameCount     Int      @default(1) @map("game_count")
   mapName       String   @map("map_name")
   mapType       MapType  @map("map_type")
+  joinCode      String?  @map("join_code")
   createdAt     DateTime @default(now()) @map("created_at")
 
   competition Competition @relation(fields: [competitionId], references: [id])

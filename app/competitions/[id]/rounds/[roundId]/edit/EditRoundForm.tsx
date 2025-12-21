@@ -4,19 +4,20 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Save } from 'lucide-react';
+import { Round } from '@prisma/client';
 
-interface NewRoundFormProps {
+interface EditRoundFormProps {
     competitionId: string;
-    initialRoundNumber: number;
+    round: Round;
 }
 
-export default function NewRoundForm({ competitionId, initialRoundNumber }: NewRoundFormProps) {
+export default function EditRoundForm({ competitionId, round }: EditRoundFormProps) {
     const router = useRouter();
-    const [mapName, setMapName] = useState('');
-    const [roundNumber, setRoundNumber] = useState(initialRoundNumber);
-    const [gameCount, setGameCount] = useState(10); // Default to 10 games
-    const [mapType, setMapType] = useState('Moving');
-    const [joinCode, setJoinCode] = useState('');
+    const [mapName, setMapName] = useState(round.mapName);
+    const [roundNumber, setRoundNumber] = useState(round.roundNumber);
+    const [gameCount, setGameCount] = useState(round.gameCount);
+    const [mapType, setMapType] = useState(round.mapType);
+    const [joinCode, setJoinCode] = useState(round.joinCode || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -24,11 +25,10 @@ export default function NewRoundForm({ competitionId, initialRoundNumber }: NewR
         setIsSubmitting(true);
 
         try {
-            const res = await fetch(`/api/rounds`, {
-                method: 'POST',
+            const res = await fetch(`/api/rounds/${round.id}`, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    competitionId,
                     mapName,
                     roundNumber: Number(roundNumber),
                     gameCount: Number(gameCount),
@@ -37,14 +37,14 @@ export default function NewRoundForm({ competitionId, initialRoundNumber }: NewR
                 })
             });
 
-            if (!res.ok) throw new Error('Failed to create round');
+            if (!res.ok) throw new Error('Failed to update round');
 
             const data = await res.json();
-            // Redirect to competition page instead of score entry, as they need to choose a game first
             router.push(`/competitions/${competitionId}`);
+            router.refresh();
         } catch (error) {
             console.error(error);
-            alert('Error creating round');
+            alert('Error updating round');
             setIsSubmitting(false);
         }
     };
@@ -56,7 +56,7 @@ export default function NewRoundForm({ competitionId, initialRoundNumber }: NewR
                     <ArrowLeft size={16} />
                     Back to Competition
                 </Link>
-                <h1 className="heading-1">Add New Round</h1>
+                <h1 className="heading-1">Edit Round {round.roundNumber}</h1>
             </header>
 
             <form onSubmit={handleSubmit} className="card">
@@ -68,7 +68,6 @@ export default function NewRoundForm({ competitionId, initialRoundNumber }: NewR
                         placeholder="e.g., A Balanced World"
                         value={mapName}
                         onChange={(e) => setMapName(e.target.value)}
-                        autoFocus
                         required
                     />
                 </div>
@@ -113,7 +112,7 @@ export default function NewRoundForm({ competitionId, initialRoundNumber }: NewR
                         <select
                             className="input"
                             value={mapType}
-                            onChange={(e) => setMapType(e.target.value)}
+                            onChange={(e) => setMapType(e.target.value as any)}
                         >
                             <option value="Moving">Moving</option>
                             <option value="NoMove">No Move</option>
@@ -125,10 +124,10 @@ export default function NewRoundForm({ competitionId, initialRoundNumber }: NewR
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
                     <Link href={`/competitions/${competitionId}`} className="btn btn-outline">Cancel</Link>
                     <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                        {isSubmitting ? 'Creating...' : (
+                        {isSubmitting ? 'Updating...' : (
                             <>
                                 <Save size={18} />
-                                Create Round
+                                Update Round
                             </>
                         )}
                     </button>

@@ -206,6 +206,7 @@ export default function ScoreForm({ competitionId, roundId, roundNumber, mapName
 
             // Show success message
             setSuccessMessage('Scores saved successfully!');
+            setRejoins({});
 
             // Reset submitting state before navigation
             setIsSubmitting(false);
